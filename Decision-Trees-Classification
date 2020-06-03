@@ -1,0 +1,116 @@
+## DECISION TREES CLASSIFICATION ##
+
+import numpy as np 
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+
+#Downloading data
+
+!wget -O drug200.csv https://s3-api.us-geo.objectstorage.softlayer.net/cf-courses-data/CognitiveClass/ML0101ENv3/labs/drug200.csv
+
+#Reading data
+my_data = pd.read_csv("drug200.csv", delimiter=",")
+my_data[0:5]
+
+#Size of the data
+
+print(my_data.shape)
+
+#X as the Feature Matrix (data of my_data)
+#y as the response vector (target)
+
+#Remove the column containing the target name since it doesn't contain numeric values.
+X = my_data[['Age', 'Sex', 'BP', 'Cholesterol', 'Na_to_K']].values
+X[0:5]
+
+#Sklearn Decision Trees do not handle categorical variables. 
+#We can convert these features to numerical values. 
+#__pandas.get_dummies()__
+Convert categorical variable into dummy/indicator variables.
+
+#Converting F and M into numbers
+
+from sklearn import preprocessing
+le_sex = preprocessing.LabelEncoder()
+le_sex.fit(['F','M'])
+X[:,1] = le_sex.transform(X[:,1]) 
+
+#cOnverting BP into numbers
+le_BP = preprocessing.LabelEncoder()
+le_BP.fit([ 'LOW', 'NORMAL', 'HIGH'])
+X[:,2] = le_BP.transform(X[:,2])
+
+#cOnverting Chol into numbers
+le_Chol = preprocessing.LabelEncoder()
+le_Chol.fit([ 'NORMAL', 'HIGH'])
+X[:,3] = le_Chol.transform(X[:,3]) 
+
+X[0:5]
+
+#the target variable.
+y = my_data["Drug"]
+y[0:5]
+
+#Training the model
+from sklearn.model_selection import train_test_split
+
+#The X and y are the arrays required before the split,
+#the test_size represents the ratio of the testing dataset, and the random_state ensures that we obtain the same splits.
+
+X_trainset, X_testset, y_trainset, y_testset = train_test_split(X, y, test_size=0.3, random_state=3)
+
+print(X_trainset.shape)
+print(y_trainset.shape)
+
+>(140, 5)
+>(140,)
+
+print(X_testset.shape)
+print(y_testset.shape)
+
+>(60, 5)
+>(60,)
+
+
+#Modeling
+## Inside of the classifier, specify criterion="entropy" so we can see the information gain of each node.
+drugTree = DecisionTreeClassifier(criterion="entropy", max_depth = 4)
+drugTree # it shows the default parameters
+
+#Fit the model
+
+drugTree.fit(X_trainset,y_trainset)
+
+#Predict
+predTree = drugTree.predict(X_testset)
+
+#show the prediction
+print (predTree [0:5])
+print (y_testset [0:5])
+
+#Accuracy of the model
+
+from sklearn import metrics
+import matplotlib.pyplot as plt
+print("DecisionTrees's Accuracy: ", metrics.accuracy_score(y_testset, predTree))
+>DecisionTrees's Accuracy:  0.9833333333333333
+
+#Visualization
+
+from sklearn.externals.six import StringIO
+import pydotplus
+import matplotlib.image as mpimg
+from sklearn import tree
+%matplotlib inline 
+
+
+dot_data = StringIO()
+filename = "drugtree.png"
+featureNames = my_data.columns[0:5]
+targetNames = my_data["Drug"].unique().tolist()
+out=tree.export_graphviz(drugTree,feature_names=featureNames, out_file=dot_data, class_names= np.unique(y_trainset), filled=True,  special_characters=True,rotate=False)  
+graph = pydotplus.graph_from_dot_data(dot_data.getvalue())  
+graph.write_png(filename)
+img = mpimg.imread(filename)
+plt.figure(figsize=(100, 200))
+plt.imshow(img,interpolation='nearest')
